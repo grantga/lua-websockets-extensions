@@ -316,13 +316,17 @@ function Extensions:offer()
 end
 
 -- Accept extension negotiation response
-function Extensions:accept(params)
+function Extensions:accept(params_string)
+  if not params_string then return end
+
   assert(self._offered, 'try accept without offer')
 
-  params = decode_header(params)
+  params = decode_header(params_string)
   if not params then
-    return Error.new(Error.EINVAL, nil, 'invalid header value', params)
+    return nil, Error.new(Error.EINVAL, nil, 'invalid header value', params_string)
   end
+
+  if #params == 0 then return end
 
   local active, offered = {}, self._offered
   self._offered = nil
@@ -361,9 +365,13 @@ function Extensions:accept(params)
 end
 
 -- Generate extension negotiation response
-function Extensions:response(offers)
-  offers = decode_header(offers)
-  if not offers then return end
+function Extensions:response(offers_string)
+  if not offers_string then return end
+
+  offers = decode_header(offers_string)
+  if not offers then
+    return nil, Error.new(Error.EINVAL, nil, 'invalid header value', offers_string)
+  end
 
   local params_by_name = {}
   for _, offer in ipairs(offers) do

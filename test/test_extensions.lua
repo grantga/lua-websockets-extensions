@@ -418,6 +418,20 @@ it('should accept multiple ext', function()
   assert_equal(1, i)
 end)
 
+it('should return nil if there no header', function()
+  assert(ext:reg(E{'permessage-foo', true}))
+  assert_string(ext:offer())
+  local _, err = assert_nil(ext:accept(nil))
+  assert_nil(err)
+end)
+
+it('should return nil to empty header', function()
+  assert(ext:reg(E{'permessage-foo', true}))
+  assert_string(ext:offer())
+  local _, err = assert_nil(ext:accept(''))
+  assert_nil(err)
+end)
+
 end
 ------------------------------------------------------------------
 
@@ -541,6 +555,23 @@ it('should fail accept if second ext fail', function()
 
   assert_equal('ERROR', err)
   assert_nil(ext:accepted())
+end)
+
+it('should return nil if there no header', function()
+  assert(ext:reg(E{'permessage-foo', true}))
+  local _, err = assert_nil(ext:response(nil))
+  assert_nil(err)
+end)
+
+it('should return nil to empty header', function()
+  assert(ext:reg(E{'permessage-foo', true}))
+  local _, err = assert_nil(ext:response(''))
+  assert_nil(err)
+end)
+
+it('should return nil if there no extensions', function()
+  local _, err = assert_nil(ext:response('permessage-foo'))
+  assert_nil(err)
 end)
 
 end
