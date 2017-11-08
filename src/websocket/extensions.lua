@@ -71,7 +71,7 @@ end
 ------------------------------------------------------------------
 
 ------------------------------------------------------------------
-local encode_header, decode_header 
+local encode_header, decode_header
 local decode_header_native, decode_header_lpeg
 do
 
@@ -106,7 +106,7 @@ local function unquote(s)
   return s
 end
 
-local function enqute(s)
+local function enquote(s)
   if string.find(s, '[ ",;]') then
     s = '"' .. string.gsub(s, '"', '\\"') .. '"'
   end
@@ -137,30 +137,32 @@ decode_header_native = function (str)
 end
 
 local lpeg = prequre 'lpeg' if lpeg then
-  local P, C, Cs, Ct, Cp = lpeg.P, lpeg.C, lpeg.Cs, lpeg.Ct, lpeg.Cp
+  local P, Cs, Ct, Cp = lpeg.P, lpeg.Cs, lpeg.Ct, lpeg.Cp
   local nl          = P('\n')
   local any         = P(1)
   local eos         = P(-1)
   local quot        = '"'
 
-  -- split params
-  local unquoted    = (any - (nl + P(quot) + P(',') + eos))^1
-  local quoted      = P(quot) * ((P('\\') * P(quot) + (any - P(quot)))^0) * P(quot)
-  local field       = Cs( (quoted + unquoted)^0 )
-  local params      = Ct(field * ( P(',') * field )^0) * (nl + eos) * Cp()
+  local params do -- split params
+    local unquoted    = (any - (nl + P(quot) + P(',') + eos))^1
+    local quoted      = P(quot) * ((P('\\') * P(quot) + (any - P(quot)))^0) * P(quot)
+    local field       = Cs( (quoted + unquoted)^0 )
+    params            = Ct(field * ( P(',') * field )^0) * (nl + eos) * Cp()
+  end
 
-  -- split options
-  local quoted_pair = function (ch) return ch:sub(2) end
-  local unquoted    = (any - (nl + P(quot) + P(';') + P('=') + eos))^1
-  local quoted      = (P(quot) / '') * (
-    (
-      P('\\') * any / quoted_pair +
-      (any - P(quot))
-    )^0
-  ) * (P(quot) / '')
-  local kv          = unquoted * P'=' * (quoted + unquoted)
-  local field       = Cs(kv + unquoted)
-  local options     = Ct(field * ( P(';') * field )^0) * (nl + eos) * Cp()
+  local options do -- split options
+    local quoted_pair = function (ch) return ch:sub(2) end
+    local unquoted    = (any - (nl + P(quot) + P(';') + P('=') + eos))^1
+    local quoted      = (P(quot) / '') * (
+      (
+        P('\\') * any / quoted_pair +
+        (any - P(quot))
+      )^0
+    ) * (P(quot) / '')
+    local kv          = unquoted * P'=' * (quoted + unquoted)
+    local field       = Cs(kv + unquoted)
+    options           = Ct(field * ( P(';') * field )^0) * (nl + eos) * Cp()
+  end
 
   decode_header_lpeg = function(str)
     if not str then return str end
@@ -194,11 +196,11 @@ local function encode_header_options(name, options)
     for k, v in pairs(options) do
       if v == true then str = str .. '; ' .. k
       elseif type(v) == 'table' then
-        for _, v in ipairs(v) do
+        for _, v in ipairs(v) do -- luacheck: ignore v
           if v == true then str = str .. '; ' .. k
-          else str = str .. '; ' .. k .. '=' .. enqute(tostring(v)) end
+          else str = str .. '; ' .. k .. '=' .. enquote(tostring(v)) end
         end
-      else str = str .. '; ' .. k .. '=' .. enqute(tostring(v)) end
+      else str = str .. '; ' .. k .. '=' .. enquote(tostring(v)) end
     end
   end
   return str
@@ -229,7 +231,8 @@ local ERRORS = {
 
 for k, v in pairs(ERRORS) do Error[v] = k end
 
-function Error:__init(no, name, msg, ext, code, reason)
+function Error:__init(no, name, msg, ext, code, reason) -- luacheck: ignore code reason
+  --! @todo handle code/reason
   self._no     = assert(no)
   self._name   = assert(name or ERRORS[no])
   self._msg    = msg    or ''
@@ -237,7 +240,7 @@ function Error:__init(no, name, msg, ext, code, reason)
   return self
 end
 
-function Error:cat()    return 'WSEXT'    end
+function Error:cat()    return 'WSEXT'    end -- luacheck: ignore self
 
 function Error:no()     return self._no   end
 
@@ -248,7 +251,7 @@ function Error:msg()    return self._msg  end
 function Error:ext()    return self._ext  end
 
 function Error:__tostring()
-  local fmt 
+  local fmt
   if self._ext and #self._ext > 0 then
     fmt = "[%s][%s] %s (%d) - %s"
   else
@@ -321,7 +324,7 @@ function Extensions:accept(params_string)
 
   assert(self._offered, 'try accept without offer')
 
-  params = decode_header(params_string)
+  local params = decode_header(params_string)
   if not params then
     return nil, Error.new(Error.EINVAL, nil, 'invalid header value', params_string)
   end
@@ -355,9 +358,9 @@ function Extensions:accept(params_string)
     rsv3 = rsv3 or ext.rsv3
   end
 
-  for name, ext in pairs(offered) do
-    --! @todo close ext
-  end
+  -- for name, ext in pairs(offered) do
+  --   --! @todo close ext
+  -- end
 
   self._active = active
 
@@ -368,7 +371,7 @@ end
 function Extensions:response(offers_string)
   if not offers_string then return end
 
-  offers = decode_header(offers_string)
+  local offers = decode_header(offers_string)
   if not offers then
     return nil, Error.new(Error.EINVAL, nil, 'invalid header value', offers_string)
   end
@@ -418,7 +421,7 @@ function Extensions:response(offers_string)
   end
 end
 
-function Extensions:validate_frame(opcode, rsv1, rsv2, rsv3)
+function Extensions:validate_frame(opcode, rsv1, rsv2, rsv3) -- luacheck: ignore opcode
   local m1, m2, m3
 
   if self._active then

@@ -9,7 +9,7 @@ local Extensions = require "websocket.extensions"
 local table, tostring = table, tostring
 
 local decode_header_lpeg   = Extensions._decode_header_lpeg
-local decode_header_native = Extensions._decode_header_native 
+local decode_header_native = Extensions._decode_header_native
 local decode_header        = decode_header_lpeg or decode_header_native
 local encode_header        = Extensions._encode_header
 local H                    = encode_header
@@ -18,7 +18,7 @@ local D = function(s, ...)
   if type(s) == 'string' then
     return decode_header(s), ...
   end
-  return t, ...
+  return s, ...
 end
 
 local function E(t)

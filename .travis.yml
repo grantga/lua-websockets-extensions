@@ -7,16 +7,18 @@ sudo: false
 
 matrix:
   include:
-    - compiler: ": Lua51"
-      env: LUA="lua 5.1"
-    - compiler: ": Lua52"
-      env: LUA="lua 5.2"
-    - compiler: ": Lua53"
-      env: LUA="lua 5.3"
-    - compiler: ": LuaJIT20"
-      env: LUA="luajit 2.0"
-    - compiler: ": LuaJIT21"
-      env: LUA="luajit 2.1"
+    # - env: LUA="lua 5.1"
+    #   os: osx
+    - env: LUA="lua 5.1"
+      os: linux
+    - env: LUA="lua 5.2"
+      os: linux
+    - env: LUA="lua 5.3"
+      os: linux
+    - env: LUA="luajit 2.0"
+      os: linux
+    - env: LUA="luajit 2.1"
+      os: linux
 
 cache:
   directories:
@@ -28,26 +30,27 @@ branches:
     - master
 
 before_install:
-  - export CC=gcc
-  # install Lua
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export PATH=$PATH:~/Library/Python/2.7/bin/; fi
   - pip install --user hererocks
   - hererocks here -r^ --$LUA
-  - export PATH=$PATH:$PWD/here/bin
-
+  - source here/bin/activate
   # install optional deps
-  - luarocks show lpeg || luarocks install lpeg
+  - luarocks show lpeg > /dev/null 2>&1 || luarocks install lpeg
 
 install:
   - luarocks make rockspecs/lua-websockets-extensions-scm-0.rockspec
 
 before_script:
-  - luarocks show lunitx           || luarocks install lunitx
-  - luarocks show luacov-coveralls || luarocks install luacov-coveralls
+  - luarocks show luacheck         > /dev/null 2>&1 || luarocks install luacheck
+  - luarocks show lunitx           > /dev/null 2>&1 || luarocks install lunitx
+  - luarocks show lua-curl         > /dev/null 2>&1 || luarocks install lua-curl
+  - luarocks show luacov-coveralls > /dev/null 2>&1 || luarocks install luacov-coveralls
 
 script: 
   - cd test
   - lunit.sh test_extensions.lua
-  
+  - luacheck ../src
+
 after_success:
   - luacov-coveralls -v
 
